@@ -61,7 +61,7 @@ const int DEVICE_SLAVE_ADDRESS = 0x49;
 
 // registers for triad
 const int RAW_VALUE_RGA_HIGH = 0x08;
-static const int RAW_VALUE_RGA_LOW = 0x09;
+const int RAW_VALUE_RGA_LOW = 0x09;
 
 const int RAW_VALUE_SHB_HIGH = 0x0A;
 const int RAW_VALUE_SHB_LOW = 0x0B;
@@ -297,13 +297,13 @@ int main(void)
 			  sprintf((char*)buf , "channel %u : %f\n", (unsigned int)((i*CHANNELS) + j), (float)channel->color_data);
 
 			  HAL_UART_Transmit(&huart2, buf, strlen((char*)buf), HAL_MAX_DELAY);
-			  HAL_Delay(500);
+			  HAL_Delay(10);
 		  }
 	  }
 
-	  strcpy((char*)buf, "Hello!\r\n");
-	  HAL_UART_Transmit(&huart2, buf, strlen((char*)buf), HAL_MAX_DELAY);
-	  HAL_Delay(500);
+//	  strcpy((char*)buf, "Hello!\r\n");
+//	  HAL_UART_Transmit(&huart2, buf, strlen((char*)buf), HAL_MAX_DELAY);
+//	  HAL_Delay(500);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
