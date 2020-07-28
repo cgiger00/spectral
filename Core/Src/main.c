@@ -125,6 +125,9 @@ uint8_t virtual_read(uint8_t v_reg);
 int check_error() {
 	if (ret != HAL_OK) {
 		strcpy((char*)buf, "Err __LINE__ \r\n");
+
+    HAL_UART_Transmit(&huart2, buf, strlen((char*)buf), HAL_MAX_DELAY);
+    HAL_Delay(10);
 		return 0;
 	}
 	return 1;
