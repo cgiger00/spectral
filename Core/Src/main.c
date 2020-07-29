@@ -106,10 +106,10 @@ static void MX_I2C1_Init(void);
 
 int check_error();
 
-void HAL_byte_write(uint8_t addr, uint8_t data);
+void nucleo_byte_write(uint8_t addr, uint8_t data);
 void virtual_write(uint8_t v_reg, uint8_t data);
 
-uint8_t HAL_byte_read(uint8_t device_reg);
+uint8_t nucleo_byte_read(uint8_t device_reg);
 uint8_t virtual_read(uint8_t v_reg);
 
 
@@ -133,7 +133,7 @@ int check_error() {
 	return 1;
 }
 
-uint8_t HAL_byte_read(uint8_t device_reg) {
+uint8_t nucleo_byte_read(uint8_t device_reg) {
 	//transmits the address to read from
 	buf[0] = device_reg;
 	ret = HAL_I2C_Master_Transmit(&hi2c1, DEVICE_SLAVE_ADDRESS, buf, 1, HAL_MAX_DELAY);
@@ -145,7 +145,7 @@ uint8_t HAL_byte_read(uint8_t device_reg) {
 	return buf[0];
 }
 
-void HAL_byte_write(uint8_t addr, uint8_t data) {
+void nucleo_byte_write(uint8_t addr, uint8_t data) {
 	buf[0] = addr;
 	buf[1] = data;
 
@@ -158,14 +158,14 @@ uint8_t virtual_read(uint8_t v_reg) {
 	uint8_t status;
 	uint8_t d;
 
-	status = HAL_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
+	status = nucleo_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
 
 	if ((status & I2C_AS72XX_SLAVE_RX_VALID) != 0) {
-		d = HAL_byte_read(I2C_AS72XX_SLAVE_READ_REG);
+		d = nucleo_byte_read(I2C_AS72XX_SLAVE_READ_REG);
 	}
 
 	while(1) {
-		status = HAL_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
+		status = nucleo_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
 
 		if ((status & I2C_AS72XX_SLAVE_TX_VALID) == 0) {
 			break;
@@ -173,17 +173,17 @@ uint8_t virtual_read(uint8_t v_reg) {
 		HAL_Delay(5); //delay for 5 ms
 	}
 
-	HAL_byte_write(I2C_AS72XX_SLAVE_WRITE_REG, v_reg);
+	nucleo_byte_write(I2C_AS72XX_SLAVE_WRITE_REG, v_reg);
 
 	while(1) {
-		status = HAL_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
+		status = nucleo_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
 		if ((status & I2C_AS72XX_SLAVE_RX_VALID) != 0) {
 			break;
 		}
 		HAL_Delay(5); //delay for 5 ms
 	}
 
-	d = HAL_byte_read( I2C_AS72XX_SLAVE_READ_REG);
+	d = nucleo_byte_read( I2C_AS72XX_SLAVE_READ_REG);
 	return d;
 }
 
@@ -192,24 +192,24 @@ void virtual_write(uint8_t v_reg, uint8_t data) {
 	uint8_t status;
 
 	while(1) {
-		status = HAL_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
+		status = nucleo_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
 		if ((status & I2C_AS72XX_SLAVE_TX_VALID) == 0) {
 			break;
 		}
 		HAL_Delay(5);
 	}
 
-	HAL_byte_write(I2C_AS72XX_SLAVE_WRITE_REG, (v_reg | 1 << 7));
+	nucleo_byte_write(I2C_AS72XX_SLAVE_WRITE_REG, (v_reg | 1 << 7));
 
 	while(1) {
-		status = HAL_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
+		status = nucleo_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
 		if ((status & I2C_AS72XX_SLAVE_TX_VALID) == 0) {
 			break;
 		}
 		HAL_Delay(5);
 	}
 
-	HAL_byte_write(I2C_AS72XX_SLAVE_WRITE_REG, data);
+	nucleo_byte_write(I2C_AS72XX_SLAVE_WRITE_REG, data);
 }
 
 uint16_t get_decimal(uint8_t virtual_reg_l, uint8_t virtual_reg_h) {
@@ -300,7 +300,7 @@ int main(void)
 			  sprintf((char*)buf , "channel %u : %f\n", (unsigned int)((i*CHANNELS) + j), (float)channel->color_data);
 
 			  HAL_UART_Transmit(&huart2, buf, strlen((char*)buf), HAL_MAX_DELAY);
-			  HAL_Delay(10);
+			  HAL_Delay(1000);
 		  }
 	  }
 
