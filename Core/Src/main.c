@@ -22,6 +22,7 @@
 #include "main.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -124,7 +125,7 @@ uint8_t virtual_read(uint8_t v_reg);
 
 int check_error() {
 	if (ret != HAL_OK) {
-		strcpy((char*)buf, "Err __LINE__ \r\n");
+		strcpy((char*)buf, "Err \r\n");
 
     HAL_UART_Transmit(&huart2, buf, strlen((char*)buf), HAL_MAX_DELAY);
     HAL_Delay(10);
@@ -136,11 +137,11 @@ int check_error() {
 uint8_t nucleo_byte_read(uint8_t device_reg) {
 	//transmits the address to read from
 	buf[0] = device_reg;
-	ret = HAL_I2C_Master_Transmit(&hi2c1, DEVICE_SLAVE_ADDRESS, buf, 1, HAL_MAX_DELAY);
+	ret = HAL_I2C_Master_Transmit(&hi2c1, DEVICE_SLAVE_ADDRESS << 1, buf, 1, HAL_MAX_DELAY);
 	check_error();
 
 	//reads from address sent above
-	ret = HAL_I2C_Master_Receive(&hi2c1, DEVICE_SLAVE_ADDRESS, buf, 1, HAL_MAX_DELAY);
+	ret = HAL_I2C_Master_Receive(&hi2c1, (DEVICE_SLAVE_ADDRESS << 1) | 1, buf, 1, HAL_MAX_DELAY);
 	check_error();
 	return buf[0];
 }
@@ -150,7 +151,7 @@ void nucleo_byte_write(uint8_t addr, uint8_t data) {
 	buf[1] = data;
 
 	//SMBUS docs first byte is addr to write to, second is data
-	ret = HAL_I2C_Master_Transmit(&hi2c1, DEVICE_SLAVE_ADDRESS, buf, 2, HAL_MAX_DELAY);
+	ret = HAL_I2C_Master_Transmit(&hi2c1, DEVICE_SLAVE_ADDRESS << 1, buf, 2, HAL_MAX_DELAY);
 	check_error();
 }
 
@@ -217,23 +218,27 @@ uint16_t get_decimal(uint8_t virtual_reg_l, uint8_t virtual_reg_h) {
 	return high | (virtual_read(virtual_reg_l));
 }
 
-void init_channel(Channel *ch, uint8_t lsb_r, uint8_t msb_r) {
+Channel* new_channel(uint8_t lsb_r, uint8_t msb_r) {
+	Channel* ch = malloc(sizeof(Channel));
 	ch->color_data = 0;
 	ch->lsb_register = lsb_r;
 	ch->msb_register = msb_r;
+	return ch;
 }
 
 //not the most readable code..
 //dev channels start at 0x08 and increase by 8 up until 0x13
 
-void init_device(Device *dev, uint8_t dev_register) {
+Device* new_device(uint8_t dev_register) {
+	Device* dev = malloc(sizeof(Device));
 	dev->dev_register = dev_register;
 
-	uint8_t START_REG = RAW_VALUE_RGA_LOW;
+	uint8_t START_REG = 0x08; //RAW_VALUE_RGA_LOW;
 
 	for (uint8_t i = 0; i < CHANNELS; ++i) {
-		init_channel(dev->channels[i], START_REG + (2 * i), START_REG + (2 * i) + 1);
+		dev->channels[i] = new_channel(START_REG + (2 * i), START_REG + (2 * i) + 1);
 	}
+	return dev;
 }
 
 /* USER CODE END 0 */
@@ -245,19 +250,6 @@ void init_device(Device *dev, uint8_t dev_register) {
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	uint8_t buf[30];
-
-	Device *triad_dev_1 = NULL;
-	init_device(triad_dev_1, 0x00);
-
-	Device *triad_dev_2 = NULL;
-	init_device(triad_dev_2, 0x01);
-
-	Device *triad_dev_3 = NULL;
-	init_device(triad_dev_3, 0x02);
-
-	Device *triad[3] = { triad_dev_1, triad_dev_2, triad_dev_3 };
-
 
   /* USER CODE END 1 */
 
@@ -267,7 +259,15 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+	uint8_t buf[30];
 
+	Device *triad_dev_1 = new_device(0x00);
+
+	Device *triad_dev_2 = new_device(0x01);
+
+	Device *triad_dev_3 = new_device(0x02);
+
+	Device *triad[3] = { triad_dev_1, triad_dev_2, triad_dev_3 };
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -289,24 +289,28 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  strcpy((char*)buf, "Hello!\r\n");
+	  HAL_UART_Transmit(&huart2, buf, strlen((char*)buf), HAL_MAX_DELAY);
+	  HAL_Delay(500);
+
+	  Channel *channel = new_channel(0, 0);
 
 	  for (uint8_t i = 0; i < 3; ++i) {
 		  virtual_write(DEV_SEL, triad[i]->dev_register);
 		  for (uint8_t j = 0; j < CHANNELS; ++j) {
-			  Channel *channel = triad[i]->channels[j];
+			  channel = triad[i]->channels[j];
 			  channel->color_data = get_decimal(channel->lsb_register, channel->msb_register);
 
 			  //complicated way to print "channel {x} : {data}"
 			  sprintf((char*)buf , "channel %u : %f\n", (unsigned int)((i*CHANNELS) + j), (float)channel->color_data);
 
 			  HAL_UART_Transmit(&huart2, buf, strlen((char*)buf), HAL_MAX_DELAY);
-			  HAL_Delay(1000);
+			  HAL_Delay(10);
 		  }
 	  }
+	  HAL_Delay(1000);
 
-//	  strcpy((char*)buf, "Hello!\r\n");
-//	  HAL_UART_Transmit(&huart2, buf, strlen((char*)buf), HAL_MAX_DELAY);
-//	  HAL_Delay(500);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
