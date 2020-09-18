@@ -20,6 +20,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "smbus.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,6 +82,8 @@ const int RAW_VALUE_WLF_LOW = 0x13;
 
 static HAL_StatusTypeDef ret;
 uint8_t buf[30];
+
+Bus *i2cBus;
 
 
 typedef struct {
@@ -159,14 +162,17 @@ uint8_t virtual_read(uint8_t v_reg) {
 	uint8_t status;
 	uint8_t d;
 
-	status = nucleo_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
+	// status = nucleo_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
+	status = read_byte_data(i2cBus, DEVICE_SLAVE_ADDRESS, I2C_AS72XX_SLAVE_STATUS_REG);
 
 	if ((status & I2C_AS72XX_SLAVE_RX_VALID) != 0) {
-		d = nucleo_byte_read(I2C_AS72XX_SLAVE_READ_REG);
+		// d = nucleo_byte_read(I2C_AS72XX_SLAVE_READ_REG);
+		d = read_byte_data(i2cBus, DEVICE_SLAVE_ADDRESS, I2C_AS72XX_SLAVE_READ_REG);
 	}
 
 	while(1) {
-		status = nucleo_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
+		// status = nucleo_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
+		status = read_byte_data(i2cBus, DEVICE_SLAVE_ADDRESS, I2C_AS72XX_SLAVE_STATUS_REG);
 
 		if ((status & I2C_AS72XX_SLAVE_TX_VALID) == 0) {
 			break;
@@ -174,17 +180,23 @@ uint8_t virtual_read(uint8_t v_reg) {
 		HAL_Delay(5); //delay for 5 ms
 	}
 
-	nucleo_byte_write(I2C_AS72XX_SLAVE_WRITE_REG, v_reg);
+	// nucleo_byte_write(I2C_AS72XX_SLAVE_WRITE_REG, v_reg);
+	write_byte_data(i2cBus, DEVICE_SLAVE_ADDRESS, I2C_AS72XX_SLAVE_WRITE_REG, v_reg);
 
 	while(1) {
-		status = nucleo_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
+		// status = nucleo_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
+		status = read_byte_data(i2cBus, DEVICE_SLAVE_ADDRESS, I2C_AS72XX_SLAVE_STATUS_REG);
+
 		if ((status & I2C_AS72XX_SLAVE_RX_VALID) != 0) {
 			break;
 		}
 		HAL_Delay(5); //delay for 5 ms
 	}
 
-	d = nucleo_byte_read( I2C_AS72XX_SLAVE_READ_REG);
+	// d = nucleo_byte_read( I2C_AS72XX_SLAVE_READ_REG);
+
+	d = read_byte_data(i2cBus, DEVICE_SLAVE_ADDRESS, I2C_AS72XX_SLAVE_READ_REG);
+
 	return d;
 }
 
@@ -193,14 +205,16 @@ void virtual_write(uint8_t v_reg, uint8_t data) {
 	uint8_t status;
 
 	while(1) {
-		status = nucleo_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
+		// status = nucleo_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
+		status = read_byte_data(i2cBus, DEVICE_SLAVE_ADDRESS, I2C_AS72XX_SLAVE_STATUS_REG);
 		if ((status & I2C_AS72XX_SLAVE_TX_VALID) == 0) {
 			break;
 		}
 		HAL_Delay(5);
 	}
 
-	nucleo_byte_write(I2C_AS72XX_SLAVE_WRITE_REG, (v_reg | 1 << 7));
+	// nucleo_byte_write(I2C_AS72XX_SLAVE_WRITE_REG, (v_reg | 1 << 7));
+	write_byte_data(i2cBus, DEVICE_SLAVE_ADDRESS, I2C_AS72XX_SLAVE_WRITE_REG, (v_reg | 1 << 7));
 
 	while(1) {
 		status = nucleo_byte_read(I2C_AS72XX_SLAVE_STATUS_REG);
@@ -210,12 +224,13 @@ void virtual_write(uint8_t v_reg, uint8_t data) {
 		HAL_Delay(5);
 	}
 
-	nucleo_byte_write(I2C_AS72XX_SLAVE_WRITE_REG, data);
+	// nucleo_byte_write(I2C_AS72XX_SLAVE_WRITE_REG, data);
+	write_byte_data(i2cBus, DEVICE_SLAVE_ADDRESS, I2C_AS72XX_SLAVE_WRITE_REG, data);
 }
 
 uint16_t get_decimal(uint8_t virtual_reg_l, uint8_t virtual_reg_h) {
 	uint16_t high = virtual_read(virtual_reg_h) << 8;
-	return high | (virtual_read(virtual_reg_l));
+	return high | (virtual_read(virtual_reg_l) & 0xFF);
 }
 
 Channel* new_channel(uint8_t lsb_r, uint8_t msb_r) {
@@ -259,6 +274,9 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+
+  	i2cBus = new_bus(&hi2c1, &huart2);
+
 	uint8_t buf[30];
 
 	Device *triad_dev_1 = new_device(0x00);

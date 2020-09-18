@@ -1,0 +1,9 @@
+smbus.c:4:6:new_bus	24	static
+smbus.c:12:6:read_byte	24	static
+smbus.c:18:6:write_byte	24	static
+smbus.c:24:6:read_byte_data	24	static
+smbus.c:36:6:write_byte_data	24	static
+smbus.c:45:6:read_word_data	32	static
+smbus.c:58:6:write_word_data	24	static
+smbus.c:67:5:_check_error	24	static
+smbus.c:78:6:reset	16	static
