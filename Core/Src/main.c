@@ -86,7 +86,7 @@ uint8_t buf[30];
 typedef struct {
 	uint8_t lsb_register;
 	uint8_t msb_register;
-	uint8_t color_data;
+	uint16_t color_data;
 } Channel;
 
 typedef struct {
@@ -287,11 +287,17 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  //enable the spectral sensor
+
+  virtual_write(0x04, 0x28);
+  virtual_write(0x04, 0x28);
+  virtual_write(0x05, 0xFF);
+
   while (1)
   {
-	  strcpy((char*)buf, "Hello!\r\n");
-	  HAL_UART_Transmit(&huart2, buf, strlen((char*)buf), HAL_MAX_DELAY);
-	  HAL_Delay(500);
+	  // strcpy((char*)buf, "Hello!\r\n");
+	  // HAL_UART_Transmit(&huart2, buf, strlen((char*)buf), HAL_MAX_DELAY);
+	  // HAL_Delay(500);
 
 	  Channel *channel = new_channel(0, 0);
 
@@ -302,7 +308,7 @@ int main(void)
 			  channel->color_data = get_decimal(channel->lsb_register, channel->msb_register);
 
 			  //complicated way to print "channel {x} : {data}"
-			  sprintf((char*)buf , "channel %u : %f\n", (unsigned int)((i*CHANNELS) + j), (float)channel->color_data);
+			  sprintf((char*)buf , "channel %u : %f \r\n", (unsigned int)((i*CHANNELS) + j), (float)channel->color_data);
 
 			  HAL_UART_Transmit(&huart2, buf, strlen((char*)buf), HAL_MAX_DELAY);
 			  HAL_Delay(10);
