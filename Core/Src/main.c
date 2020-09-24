@@ -108,12 +108,8 @@ static void MX_USART2_UART_Init(void);
 static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
 
-int check_error();
-
-void nucleo_byte_write(uint8_t addr, uint8_t data);
 void virtual_write(uint8_t v_reg, uint8_t data);
 
-uint8_t nucleo_byte_read(uint8_t device_reg);
 uint8_t virtual_read(uint8_t v_reg);
 
 
@@ -126,37 +122,6 @@ uint8_t virtual_read(uint8_t v_reg);
 /* USER CODE BEGIN 0 */
 
 
-int check_error() {
-	if (ret != HAL_OK) {
-		strcpy((char*)buf, "Err \r\n");
-
-    HAL_UART_Transmit(&huart2, buf, strlen((char*)buf), HAL_MAX_DELAY);
-    HAL_Delay(10);
-		return 0;
-	}
-	return 1;
-}
-
-uint8_t nucleo_byte_read(uint8_t device_reg) {
-	//transmits the address to read from
-	buf[0] = device_reg;
-	ret = HAL_I2C_Master_Transmit(&hi2c1, DEVICE_SLAVE_ADDRESS << 1, buf, 1, HAL_MAX_DELAY);
-	check_error();
-
-	//reads from address sent above
-	ret = HAL_I2C_Master_Receive(&hi2c1, (DEVICE_SLAVE_ADDRESS << 1) | 1, buf, 1, HAL_MAX_DELAY);
-	check_error();
-	return buf[0];
-}
-
-void nucleo_byte_write(uint8_t addr, uint8_t data) {
-	buf[0] = addr;
-	buf[1] = data;
-
-	//SMBUS docs first byte is addr to write to, second is data
-	ret = HAL_I2C_Master_Transmit(&hi2c1, DEVICE_SLAVE_ADDRESS << 1, buf, 2, HAL_MAX_DELAY);
-	check_error();
-}
 
 uint8_t virtual_read(uint8_t v_reg) {
 	uint8_t status;
@@ -275,7 +240,7 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
-  	i2cBus = new_bus(&hi2c1, &huart2);
+  i2cBus = new_bus(&hi2c1, &huart2);
 
 	uint8_t buf[30];
 
